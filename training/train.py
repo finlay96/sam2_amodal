@@ -122,6 +122,21 @@ def add_pythonpath_to_sys_path():
 
 def main(args) -> None:
     cfg = compose(config_name=args.config)
+    # TODO no idea why it does this - this is a custom clean up for now
+    cfg = cfg.configs.custom
+    raw_data = OmegaConf.to_container(cfg, resolve=False)
+    clean_cfg = OmegaConf.create(raw_data)
+
+    # 3. Make sure resolvers are registered (required for 'times' and 'divide')
+    if not OmegaConf.has_resolver("times"):
+        OmegaConf.register_new_resolver("times", lambda x, y: int(x * y))
+    if not OmegaConf.has_resolver("divide"):
+        OmegaConf.register_new_resolver("divide", lambda x, y: x / y)
+
+    # 4. Now resolve the CLEAN config
+    OmegaConf.resolve(clean_cfg)
+    cfg = clean_cfg
+    ##########################################################################
     if cfg.launcher.experiment_log_dir is None:
         cfg.launcher.experiment_log_dir = os.path.join(
             os.getcwd(), "sam2_logs", args.config
